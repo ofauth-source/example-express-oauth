@@ -1,0 +1,17 @@
+{
+  "name": "example-express-oauth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Connect an OFAuth account and display its profile with Express.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node --env-file=.env app.js"
+  },
+  "dependencies": {
+    "express": "5.3.0",
+    "express-session": "1.19.0"
+  }
+}
