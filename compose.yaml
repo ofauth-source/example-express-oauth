@@ -1,0 +1,18 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ofauth
+      POSTGRES_PASSWORD: local-example-only
+      POSTGRES_DB: ofauth_example
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ofauth -d ofauth_example"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "127.0.0.1:5438:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+volumes:
+  postgres:

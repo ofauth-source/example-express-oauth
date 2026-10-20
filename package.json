@@ -3,15 +3,19 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Connect an OFAuth account and display its profile with Express.",
+  "description": "A complete OFAuth customer integration with Express and PostgreSQL.",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
-    "start": "node --env-file=.env app.js"
+    "start": "node --env-file=.env app.js",
+    "db:setup": "node --env-file=.env setup.js"
   },
   "dependencies": {
+    "@ofauth/onlyfans-sdk": "4.0.0",
+    "connect-pg-simple": "10.0.0",
     "express": "5.3.0",
-    "express-session": "1.19.0"
+    "express-session": "1.19.0",
+    "pg": "8.16.3"
   }
 }
