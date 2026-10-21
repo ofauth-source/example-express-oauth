@@ -12,8 +12,8 @@ const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&a
 const saveSession = req => new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()))
 
 export function createApp(config) {
-	const { clientId, clientSecret, sessionSecret, pool, origin, apiUrl, authUrl } = config
-	const ofauth = createOAuth({ clientId, clientSecret, pool, origin, apiUrl, authUrl })
+	const { clientId, clientSecret, sessionSecret, pool, origin, apiUrl, authUrl, scopes } = config
+	const ofauth = createOAuth({ clientId, clientSecret, pool, origin, apiUrl, authUrl, scopes })
 	const tokenKey = ofauth.key
 	const discovery = req => new OFAuthClient({ baseUrl: apiUrl, accessToken: () => ofauth.accessToken(req.session.userId) })
 	const selection = async req => (await ofauth.load(req.session.userId))?.selected_account_id
@@ -58,6 +58,7 @@ export function createApp(config) {
 	})
 	app.get("/oauth/ofauth/callback", signedIn, async (req, res, next) => {
 		try {
+			if (Object.hasOwn(req.query, 'reconnect')) return await reconnectReturn(req, res)
 			await ofauth.complete(req.originalUrl, req.session.userId, req.sessionID)
 			res.redirect("/accounts")
 		} catch (error) {
@@ -93,11 +94,11 @@ export function createApp(config) {
 		const state = randomBytes(32).toString("base64url")
 		await pool.query("INSERT INTO app_reconnect VALUES($1,$2,$3,$4,now()+interval '30 minutes')", [state, req.sessionID, tokenKey(req.session.userId), id])
 		try {
-			const journey = await discovery(req).linkedAccounts.createReconnect({ id, body: { state, redirect_uri: `${origin}/oauth/ofauth/reconnect` } })
+			const journey = await discovery(req).linkedAccounts.createReconnect({ id, body: { state, redirect_uri: `${origin}/oauth/ofauth/callback` } })
 			res.redirect(journey.url)
 		} catch (error) { await pool.query("DELETE FROM app_reconnect WHERE state=$1", [state]); throw error }
 	})
-	app.get("/oauth/ofauth/reconnect", signedIn, async (req, res) => {
+	const reconnectReturn = async (req, res) => {
 		const { state, reconnect } = req.query
 		if (typeof state !== "string") return page(res, "Invalid return", "<p>Start a new reconnect from home.</p>", 400)
 		const { rows: [attempt] } = await pool.query("DELETE FROM app_reconnect WHERE state=$1 AND session_id=$2 AND user_key=$3 RETURNING *", [state, req.sessionID, tokenKey(req.session.userId)])
@@ -106,7 +107,7 @@ export function createApp(config) {
 		if (typeof reconnect !== "string" || !Object.hasOwn(messages, reconnect)) return page(res, "Invalid return", "<p>Start a new reconnect from home.</p>", 400)
 		const account = await discovery(req).linkedAccounts.get({ id: attempt.linked_account_id })
 		page(res, messages[reconnect], `<p>Current account status: <strong>${escape(account.status)}</strong>.</p>${account.status === "connected" ? '<p>You can read this account’s profile.</p>' : '<p>The account still needs attention. Return home to try again.</p>'}`)
-	})
+	}
 	app.post("/disconnect", signedIn, csrf, async (req, res) => {
 		await ofauth.disconnect(req.session.userId)
 		res.sendStatus(204)
@@ -125,6 +126,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
 	const { OFAUTH_CLIENT_ID: clientId, OFAUTH_CLIENT_SECRET: clientSecret, SESSION_SECRET: sessionSecret, DATABASE_URL: connectionString, APP_ORIGIN: origin = "http://127.0.0.1:3000" } = process.env
 	if (!clientId || !clientSecret || !sessionSecret || !connectionString) throw new Error("Set OFAUTH_CLIENT_ID, OFAUTH_CLIENT_SECRET, SESSION_SECRET, and DATABASE_URL in .env")
 	const pool = new pg.Pool({ connectionString })
-	const app = createApp({ clientId, clientSecret, sessionSecret, pool, origin })
+	const scopes = process.env.OFAUTH_SCOPES?.split(' ').filter(Boolean)
+	const app = createApp({ clientId, clientSecret, sessionSecret, pool, origin, scopes,
+		apiUrl: process.env.OFAUTH_API_URL, authUrl: process.env.OFAUTH_AUTH_URL })
 	app.listen(Number(new URL(origin).port || 3000), "127.0.0.1", () => console.log(`Open ${origin}`))
 }
