@@ -116,6 +116,7 @@ try {
 	assert.equal((await post("/accounts", { id: "conn_a" })).status, 302)
 	checks.push("stale in-flight refresh cannot overwrite a newer registration")
 	revokeUnavailable = true; assert.equal((await post("/disconnect")).status, 502)
+	assert.equal((await post("/connect")).status, 502)
 	assert.equal((await call("/accounts", {}, 1)).status, 401)
 	assert.ok((await pool.query("SELECT revocation_token FROM app_oauth")).rows[0].revocation_token)
 	revokeUnavailable = false; assert.equal((await post("/disconnect")).status, 204)
