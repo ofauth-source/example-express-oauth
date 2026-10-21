@@ -1,16 +1,32 @@
 {
   "result": "pass",
-  "revision": "57d054805df1049b7410ec4fcaa1c50fcc479eb9",
-  "sourceDigest": "15de7654fdf382d13992fa3855cf1926e8d2357ac8f1a03b387d225ccb2cdecf",
+  "revision": "77c37ec0dc90305d60fc3d046c66e0c926cdd810",
+  "sourceDigests": {
+    "app.js": "3ba5024ccada7e1923223289be8a340aba76148d16f90d9143e66c366339cc81",
+    "oauth.js": "0e1b32af89f588b1a8d49f1060171f7162debffa001e8b42e0a405689c8a8e35",
+    "oauth.e2e.js": "1767a2b162c7d62f761684d11edf0b728b4dbe7c7daa8acadb950c741040f302",
+    "oauth.e2e-server.js": "7c8b0af49cdeda9890736a47bd2d1fb4dfe4c3e6e7ca32d81935b3e35e5d3c56",
+    "schema.sql": "2bc6a15864c005b95025d2223991c475184c0556762d7f679efaafe84b1a0ad2",
+    "package.json": "4455ceead59b70a39c12c15c98e390caf46a2f7aea1a909d1d938e1040c64b56"
+  },
   "runtime": "v22.23.1",
   "sdk": "4.0.0",
   "database": "PostgreSQL",
   "issuer": "simulated OAuth fixture; not OFAuth certification",
+  "concurrentProcessCount": 2,
+  "independentProcessCount": 3,
+  "processRestartVerified": true,
+  "selectionResult": {
+    "expectedStatus": 401,
+    "actualStatus": 401,
+    "retainedNewSelection": true
+  },
   "checks": [
     "session-bound single-use callback across instances",
     "concurrent refresh with stable refresh token and explicit account isolation",
     "lost refresh response retry after application restart",
     "stale in-flight refresh cannot overwrite a newer registration",
+    "selection started during pending authorization cannot overwrite the callback's new registration",
     "local disconnect fails closed and preserves upstream revocation retry"
   ]
 }
