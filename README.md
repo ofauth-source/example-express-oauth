@@ -6,11 +6,10 @@ The app uses the V4 TypeScript SDK and PostgreSQL. Tokens, pending callbacks, br
 
 ## Run locally
 
-Use Node.js 22 or later, npm, and Docker. Create a Sandbox integration in the [OFAuth dashboard](https://app.ofauth.com). Add `http://127.0.0.1:3000` as your app origin. Register both return URLs exactly:
+Use Node.js 22 or later, npm, and Docker. Create a Sandbox integration in the [OFAuth dashboard](https://app.ofauth.com). Add `http://127.0.0.1:3000` as your app origin. Register this return URL exactly:
 
 ```text
 http://127.0.0.1:3000/oauth/ofauth/callback
-http://127.0.0.1:3000/oauth/ofauth/reconnect
 ```
 
 Clone and install the example:
@@ -46,6 +45,24 @@ Open **http://127.0.0.1:3000**. Use `127.0.0.1` throughout the flow so the brows
 
 The demo sign-in always uses the app user `demo-customer`. Replace that route with your app's authentication before you deploy.
 
+## Use your Operator allowance
+
+For your own accounts, register a private deployment under **Linked accounts → Connected apps → Private apps** in the OFAuth dashboard. Use the same callback above. Each deployment gets its own client ID and secret; keep the secret on your server.
+
+Set these values in `.env`:
+
+```dotenv
+OFAUTH_CLIENT_ID=<your private deployment client ID>
+OFAUTH_CLIENT_SECRET=<your private deployment secret>
+OFAUTH_SCOPES=access:read connections:manage
+```
+
+Restart the app and select **Connect with OFAuth**. Sign in as a manager of the subscribing workspace and choose the accounts to share. The same account picker, profile request, reconnect, refresh, and disconnect flows work with Operator authority. Requests spend that workspace's Operator allowance. No Developer integration is required for this private deployment.
+
+This example reads profiles. Other Access operations keep their existing confirmation rules. The example does not request write access or provide a background confirmation bypass. Operator private apps do not include Realtime, Vault+, or webhooks.
+
+For an isolated local OFAuth server, set `OFAUTH_API_URL=http://127.0.0.1:8787` and `OFAUTH_AUTH_URL=http://localhost:8788`. These are server configuration values, not browser-supplied URLs. Production uses the SDK's default OFAuth hosts.
+
 ## Try cancellation and reconnect
 
 Start authorization and cancel it. The app shows **Authorization canceled**. A used callback cannot be replayed.
@@ -54,7 +71,7 @@ App sessions expire after 30 minutes. If a return arrives after your session end
 
 For an account that needs reconnect, select **Reconnect account**. The app creates a journey for the selected account and saves a one-use state value tied to your browser session. Its return handler handles `completed`, `canceled`, `expired`, and `denied`, then fetches the original account's current status. A `completed` return alone does not prove the account is connected. The app never replays a failed action.
 
-Sandbox accounts use the dashboard's reconnect controls. To try the hosted reconnect journey locally, use a Test integration and an account whose status is `needs_reconnect`. Update the credentials in `.env`, and register the same local return URLs for that integration. Live integrations require HTTPS: use a deployed app origin and register its HTTPS return URLs instead. If the account is already connected, the app offers a profile request instead.
+Sandbox accounts use the dashboard's reconnect controls. To try the hosted reconnect journey locally, use a Test integration and an account whose status is `needs_reconnect`. Update the credentials in `.env`, and register the same local return URL for that integration. Live integrations require HTTPS: use a deployed app origin and register its HTTPS return URL instead. If the account is already connected, the app offers a profile request instead.
 
 ## Keep token ownership in your application
 

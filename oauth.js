@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { OFAuthLink } from "@ofauth/onlyfans-sdk"
 
-export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, authUrl }) {
+export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, authUrl, scopes = ['profile:read'] }) {
 	const link = new OFAuthLink({ clientId, clientSecret, redirectUri: `${origin}/oauth/ofauth/callback`, apiUrl, authUrl })
 	const key = userId => JSON.stringify([clientId, userId])
 	const invalid = () => Object.assign(new Error("Authorization is unavailable"), { code: "invalid_grant", needsReauthorization: true })
@@ -16,7 +16,7 @@ export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, auth
 				await link.revoke({ token: previous.revocation_token, tokenTypeHint: "refresh_token" })
 				await pool.query("UPDATE app_oauth SET revocation_token=NULL WHERE user_key=$1 AND revocation_token=$2", [key(userId), previous.revocation_token])
 			}
-			const request = await link.createAuthorizationUrl({ scopes: ["profile:read"] })
+			const request = await link.createAuthorizationUrl({ scopes })
 			const version = randomUUID()
 			const db = await pool.connect()
 			try {
