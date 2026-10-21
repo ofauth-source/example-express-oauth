@@ -1,0 +1,185 @@
+{
+  "base": "93d03172e5c0d44db5eeb48dc75e325b90d72116",
+  "sourceIdentity": {
+    "revision": "93d03172e5c0d44db5eeb48dc75e325b90d72116",
+    "sourceDigest": "2ce9c87013d3bfba453cce09a23fced208e7ee207cd63d2806fb36f6bffef9e3",
+    "workingTreeDirty": true
+  },
+  "runId": "backend_1792580208337_f3be2c93",
+  "environment": "Owned local Core/gateway/consent web processes and thread DB port61969; official Express and packed generated SDK; simulated provider",
+  "checks": [
+    {
+      "name": "independent concurrent refresh status",
+      "expected": [
+        200,
+        200
+      ],
+      "actual": [
+        200,
+        200
+      ],
+      "pass": true
+    },
+    {
+      "name": "stable client credential",
+      "expected": [
+        true,
+        true
+      ],
+      "actual": [
+        true,
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "opaque 900 second tokens",
+      "expected": [
+        43,
+        900
+      ],
+      "actual": [
+        43,
+        900
+      ],
+      "pass": true
+    },
+    {
+      "name": "refresh response discarded",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "name": "retry after lost response",
+      "expected": [
+        200,
+        true
+      ],
+      "actual": [
+        200,
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "wrong API audience",
+      "expected": 400,
+      "actual": 400,
+      "pass": true
+    },
+    {
+      "name": "wrong client secret",
+      "expected": 401,
+      "actual": 401,
+      "pass": true
+    },
+    {
+      "name": "failed refresh does not extend inactivity",
+      "expected": "2027-01-19T10:59:47.827Z",
+      "actual": "2027-01-19T10:59:47.827Z",
+      "pass": true
+    },
+    {
+      "name": "actual owned Core OS process restarted",
+      "expected": true,
+      "actual": true,
+      "pass": true
+    },
+    {
+      "name": "stable refresh after Core restart",
+      "expected": [
+        200,
+        true
+      ],
+      "actual": [
+        200,
+        true
+      ],
+      "pass": true
+    },
+    {
+      "name": "account discovery",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "name": "exact grant isolation",
+      "expected": [
+        "connection_pw_test_915bb976-5605-422e-a6ac-cc19f36104db"
+      ],
+      "actual": [
+        "connection_pw_test_915bb976-5605-422e-a6ac-cc19f36104db"
+      ],
+      "pass": true
+    },
+    {
+      "name": "ungranted account selector",
+      "expected": 403,
+      "actual": 403,
+      "pass": true
+    },
+    {
+      "name": "wrong API origin",
+      "expected": 401,
+      "actual": 401,
+      "pass": true
+    },
+    {
+      "name": "provider profile after reconnect",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "name": "committed access token revocation",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    },
+    {
+      "name": "revoked bearer denied",
+      "expected": 401,
+      "actual": 401,
+      "pass": true
+    },
+    {
+      "name": "separate bearer remains valid",
+      "expected": 200,
+      "actual": 200,
+      "pass": true
+    }
+  ],
+  "billing": [
+    {
+      "client_id": "oa_13939b1b-1f0b-41be-bc91-da787e89d4f1",
+      "holder_organization_id": "org_pw_test_76d8f497-e7e0-4786-bc13-6875463d05d4",
+      "state": "succeeded",
+      "operations": 2,
+      "units": 2,
+      "bytes": "0"
+    }
+  ],
+  "limits": [
+    "No live accounts, staging callback, external billing invoice, package publication or deployment.",
+    "Provider and billing transport simulated; actual Core issuer, public gateway, browser app and SQL authority stores exercised."
+  ],
+  "consumer": {
+    "repository": "ofauth-source/example-express-oauth",
+    "base": "0976699ea46e0368eb58e7cc605420ef6670bcc3",
+    "sourceDiffSha256": "f515332f4c15bdd40bfc2b01e42982ae0aace0baaf48bc9a01ba517440147658",
+    "sdkCommit": "4df2d9db68ea98cd3afb3731f2e80a14a2c5d7c5",
+    "sdkTarballSha256": "38c93b441a29119e01c8680a88e12f197dac03688a80a2eb04f694f82cbd7f43"
+  },
+  "browserProof": [
+    "Private registration on actual dashboard with masked secret",
+    "Native dashboard sign-in and OAuth handoff",
+    "Only one of two persisted accounts selected",
+    "Exact registered callback to official Express",
+    "Native Python worker provider login and actual Core callback",
+    "Reconnect returns to same callback, profile read via packed SDK",
+    "Example process restarted and existing DB session/profile remains usable",
+    "Dashboard disconnect denies previous/current bearer and refresh"
+  ]
+}
