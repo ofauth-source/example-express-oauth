@@ -1,0 +1,17 @@
+{
+  "result": "fail",
+  "revision": "da3870c064579f6e9a1ed4f91ef8eb8d972f6d8e",
+  "sourceDigest": "15de7654fdf382d13992fa3855cf1926e8d2357ac8f1a03b387d225ccb2cdecf",
+  "issuer": "simulated OAuth fixture; not OFAuth certification",
+  "selectionResult": {
+    "expectedStatus": 401,
+    "actualStatus": 302,
+    "retainedNewSelection": false
+  },
+  "checks": [
+    "session-bound single-use callback across instances",
+    "concurrent refresh with stable refresh token and explicit account isolation",
+    "lost refresh response retry after application restart",
+    "stale in-flight refresh cannot overwrite a newer registration"
+  ]
+}

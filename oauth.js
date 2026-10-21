@@ -49,8 +49,8 @@ export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, auth
 			if (!result.rowCount) throw invalid()
 			return tokens.access_token
 		},
-		async select(userId, accountId, version) {
-			const result = await pool.query("UPDATE app_oauth SET selected_account_id=$3 WHERE user_key=$1 AND version=$2 AND tokens IS NOT NULL", [key(userId), version, accountId])
+		async select(userId, accountId, version, refreshToken) {
+			const result = await pool.query("UPDATE app_oauth SET selected_account_id=$3 WHERE user_key=$1 AND version=$2 AND tokens->>'refresh_token'=$4", [key(userId), version, accountId, refreshToken])
 			if (!result.rowCount) throw invalid()
 		},
 		async disconnect(userId) {
