@@ -1,7 +1,7 @@
 {
   "result": "pass",
-  "revision": "c062e67bd93e25510e9d53a625062510cb97bcad",
-  "sourceDigest": "3d06e8a408dbf0b9f78a091080b1f90754c8dc37a7af319e49b6b6ee98a3d19c",
+  "revision": "b72e2a20f2714fc6865bbf9b18ad2ba7e560ad85",
+  "sourceDigest": "15de7654fdf382d13992fa3855cf1926e8d2357ac8f1a03b387d225ccb2cdecf",
   "runtime": "v22.23.1",
   "sdk": "4.0.0",
   "database": "PostgreSQL",

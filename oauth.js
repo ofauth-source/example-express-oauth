@@ -22,7 +22,8 @@ export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, auth
 			try {
 				await db.query("BEGIN")
 				// Changing registrations invalidates in-flight writes without locking refresh requests.
-				await db.query("INSERT INTO app_oauth(user_key,version) VALUES($1,$2) ON CONFLICT(user_key) DO UPDATE SET version=$2", [key(userId), version])
+				const registration = await db.query("INSERT INTO app_oauth(user_key,version) VALUES($1,$2) ON CONFLICT(user_key) DO UPDATE SET version=$2 WHERE app_oauth.revocation_token IS NULL RETURNING version", [key(userId), version])
+				if (!registration.rowCount) throw Object.assign(new Error("Retry pending revocation"), { code: "server_error" })
 				await db.query("INSERT INTO app_pending VALUES($1,$2,$3,$4,$5,now()+interval '10 minutes')", [request.state, sessionId, key(userId), version, request.codeVerifier])
 				await db.query("COMMIT")
 			} catch (error) { await db.query("ROLLBACK"); throw error } finally { db.release() }
@@ -36,7 +37,7 @@ export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, auth
 			if (!pending) throw Object.assign(invalid(), { code: "invalid_state" })
 			const { code } = link.parseCallback(callback, state)
 			const tokens = await link.exchangeCode({ code, codeVerifier: pending.verifier })
-			const result = await pool.query("UPDATE app_oauth SET tokens=$3,selected_account_id=NULL WHERE user_key=$1 AND version=$2", [key(userId), pending.version, stored(tokens)])
+			const result = await pool.query("UPDATE app_oauth SET tokens=$3,selected_account_id=NULL WHERE user_key=$1 AND version=$2 AND revocation_token IS NULL", [key(userId), pending.version, stored(tokens)])
 			if (!result.rowCount) { await link.revoke({ token: tokens.refresh_token }); throw invalid() }
 		},
 		async accessToken(userId) {
