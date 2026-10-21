@@ -1,0 +1,16 @@
+{
+  "result": "pass",
+  "revision": "c062e67bd93e25510e9d53a625062510cb97bcad",
+  "sourceDigest": "3d06e8a408dbf0b9f78a091080b1f90754c8dc37a7af319e49b6b6ee98a3d19c",
+  "runtime": "v22.23.1",
+  "sdk": "4.0.0",
+  "database": "PostgreSQL",
+  "issuer": "simulated OAuth fixture; not OFAuth certification",
+  "checks": [
+    "session-bound single-use callback across instances",
+    "concurrent refresh with stable refresh token and explicit account isolation",
+    "lost refresh response retry after application restart",
+    "stale in-flight refresh cannot overwrite a newer registration",
+    "local disconnect fails closed and preserves upstream revocation retry"
+  ]
+}
