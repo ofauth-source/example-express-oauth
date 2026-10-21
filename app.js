@@ -4,17 +4,19 @@ import connectPgSimple from "connect-pg-simple"
 import pg from "pg"
 import { randomBytes } from "node:crypto"
 import { pathToFileURL } from "node:url"
-import { OFAuth, OFAuthClient, PostgresTokenStore } from "@ofauth/onlyfans-sdk"
+import { OFAuthClient } from "@ofauth/onlyfans-sdk"
+
+import { createOAuth } from "./oauth.js"
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 const saveSession = req => new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()))
 
 export function createApp(config) {
 	const { clientId, clientSecret, sessionSecret, pool, origin, apiUrl, authUrl } = config
-	const tokenKey = appUserId => JSON.stringify([clientId, appUserId])
-	const ofauth = new OFAuth({ clientId, clientSecret, redirectUri: `${origin}/oauth/ofauth/callback`, store: new PostgresTokenStore(pool), apiUrl, authUrl })
-	const discovery = req => new OFAuthClient({ baseUrl: apiUrl, accessToken: ofauth.tokenManager(tokenKey(req.session.userId)) })
-	const selection = async req => (await pool.query("SELECT linked_account_id FROM app_selection WHERE user_key=$1", [tokenKey(req.session.userId)])).rows[0]?.linked_account_id
+	const ofauth = createOAuth({ clientId, clientSecret, pool, origin, apiUrl, authUrl })
+	const tokenKey = ofauth.key
+	const discovery = req => new OFAuthClient({ baseUrl: apiUrl, accessToken: () => ofauth.accessToken(req.session.userId) })
+	const selection = async req => (await ofauth.load(req.session.userId))?.selected_account_id
 	const app = express()
 	app.disable("x-powered-by")
 	app.use((req, res, next) => {
@@ -51,12 +53,12 @@ export function createApp(config) {
 	})
 	app.post("/connect", signedIn, csrf, async (req, res) => {
 		await saveSession(req)
-		const { url } = await ofauth.startAuthorization({ userId: tokenKey(req.session.userId), sessionId: req.sessionID, operations: ["access.profile.get"] })
+		const url = await ofauth.start(req.session.userId, req.sessionID)
 		res.redirect(url)
 	})
 	app.get("/oauth/ofauth/callback", signedIn, async (req, res, next) => {
 		try {
-			await ofauth.completeAuthorization(req.originalUrl, { userId: tokenKey(req.session.userId), sessionId: req.sessionID })
+			await ofauth.complete(req.originalUrl, req.session.userId, req.sessionID)
 			res.redirect("/accounts")
 		} catch (error) {
 			if (error.code === "access_denied") return page(res, "Authorization canceled", '<p>No new access was saved. You can connect again from home.</p>')
@@ -71,8 +73,9 @@ export function createApp(config) {
 	})
 	app.post("/accounts", signedIn, csrf, async (req, res) => {
 		if (typeof req.body.id !== "string" || !req.body.id) return page(res, "Choose an account", "<p>Select an account from the list.</p>", 400)
+		const registration = await ofauth.load(req.session.userId)
 		const account = await discovery(req).linkedAccounts.get({ id: req.body.id })
-		await pool.query("INSERT INTO app_selection(user_key,linked_account_id) VALUES($1,$2) ON CONFLICT(user_key) DO UPDATE SET linked_account_id=excluded.linked_account_id", [tokenKey(req.session.userId), account.id])
+		await ofauth.select(req.session.userId, account.id, registration?.version)
 		res.redirect("/")
 	})
 	app.get("/profile", signedIn, async (req, res) => {
@@ -80,7 +83,7 @@ export function createApp(config) {
 		if (!id) return res.redirect("/accounts")
 		const account = await discovery(req).linkedAccounts.get({ id })
 		if (account.status !== "connected") return page(res, "Reconnect your account", `<p>${escape(account.status)}</p>${res.locals.form("/reconnect", "Reconnect account")}`)
-		const client = await ofauth.forUser(tokenKey(req.session.userId), { linkedAccountId: id })
+		const client = discovery(req).withLinkedAccount(id)
 		const profile = await client.access.profile.get()
 		page(res, "Connected profile", `<article><h2>${escape(profile.name ?? "Connected account")}</h2><p>${escape(profile.username)}</p><code>${escape(id)}</code></article>`)
 	})
@@ -104,8 +107,11 @@ export function createApp(config) {
 		const account = await discovery(req).linkedAccounts.get({ id: attempt.linked_account_id })
 		page(res, messages[reconnect], `<p>Current account status: <strong>${escape(account.status)}</strong>.</p>${account.status === "connected" ? '<p>You can read this account’s profile.</p>' : '<p>The account still needs attention. Return home to try again.</p>'}`)
 	})
+	app.post("/disconnect", signedIn, csrf, async (req, res) => {
+		await ofauth.disconnect(req.session.userId)
+		res.sendStatus(204)
+	})
 	app.use((error, req, res, next) => {
-		if (error.code === "refresh_recovery_required") return page(res, "Connect again to continue", `<p>The previous token refresh could not be confirmed. Start a new authorization.</p>${res.locals.form("/connect", "Connect with OFAuth")}`, 409)
 		if (error.needsReauthorization) return page(res, "Connect with OFAuth", `<p>Your authorization needs to be renewed.</p>${res.locals.form("/connect", "Connect with OFAuth")}`, 401)
 		if (error.recoveryAction === "reconnect_linked_account") return page(res, "Reconnect your account", res.locals.form("/reconnect", "Reconnect account"), 409)
 		if (error.code === "linked_account_reconnect_not_required") return page(res, "Account already connected", '<p><a href="/profile">Read profile</a></p>')
