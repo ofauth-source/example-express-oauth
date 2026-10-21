@@ -23,7 +23,7 @@ export function createApp(config) {
 		res.set({ "Cache-Control": "no-store", "Content-Security-Policy": "default-src 'none'; style-src 'self'; frame-ancestors 'none'", "Referrer-Policy": "no-referrer" })
 		next()
 	})
-	app.get("/style.css", (req, res) => res.type("css").send("body{font:17px/1.6 system-ui;max-width:720px;margin:60px auto;padding:0 24px;color:#182338;background:#fafbfd}h1{font-size:36px;line-height:1.2}h2{font-size:23px}button{font:inherit;background:#087da6;border:0;border-radius:7px;padding:9px 16px;color:white;cursor:pointer}a{color:#086b99}article{background:white;border:1px solid #dce4ec;padding:24px;border-radius:12px;margin:20px 0}small{color:#526174}form{display:inline-block;margin:8px 8px 8px 0}code{overflow-wrap:anywhere}label{display:block;margin:12px 0}"))
+	app.get("/style.css", (req, res) => res.type("css").send("body{font:15px/1.55 system-ui,sans-serif;max-width:640px;margin:48px auto;padding:0 20px;color:#182338;background:#fafbfd}h1{font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.01em;margin:6px 0 20px}h2{font-size:16px;line-height:1.4;font-weight:600;margin:0}button{font:inherit;font-size:14px;font-weight:500;background:#087da6;border:0;border-radius:8px;padding:8px 14px;color:white;cursor:pointer}a{color:#086b99}:focus-visible{outline:2px solid #087da6;outline-offset:2px}article{background:white;border:1px solid #dce4ec;padding:20px;border-radius:12px;margin:16px 0}article p{margin:4px 0 0}small,.muted{color:#526174}form{display:inline-block;margin:8px 8px 8px 0}code{overflow-wrap:anywhere;font-size:13px}label{display:block;margin:12px 0}.profile{display:flex;align-items:center;gap:14px}.avatar{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:8px;background:#eef2f6;color:#526174;font-weight:600}"))
 	app.use(express.urlencoded({ extended: false }))
 	app.use(session({ store: new (connectPgSimple(session))({ pool, createTableIfMissing: true }), secret: sessionSecret, resave: false, saveUninitialized: false, cookie: { httpOnly: true, sameSite: "lax", secure: origin.startsWith("https:"), maxAge: 30 * 60_000 } }))
 	app.use((req, res, next) => {
@@ -86,7 +86,8 @@ export function createApp(config) {
 		if (account.status !== "connected") return page(res, "Reconnect your account", `<p>${escape(account.status)}</p>${res.locals.form("/reconnect", "Reconnect account")}`)
 		const client = discovery(req).withLinkedAccount(id)
 		const profile = await client.access.profile.get()
-		page(res, "Connected profile", `<article><h2>${escape(profile.name ?? "Connected account")}</h2><p>${escape(profile.username)}</p><code>${escape(id)}</code></article>`)
+		const name = profile.name ?? "Connected account"
+		page(res, "Connected profile", `<article class="profile"><span class="avatar" aria-hidden="true">${escape(name.charAt(0).toUpperCase())}</span><div><h2>${escape(name)}</h2>${profile.username ? `<p class="muted">@${escape(profile.username)}</p>` : ""}</div></article>`)
 	})
 	app.post("/reconnect", signedIn, csrf, async (req, res) => {
 		const id = await selection(req)
