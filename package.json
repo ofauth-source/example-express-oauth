@@ -10,7 +10,7 @@
   "scripts": {
     "start": "node --env-file=.env app.js",
     "db:setup": "node --env-file=.env setup.js",
-    "check": "node --check app.js && node --check oauth.js && node --check oauth.e2e.js",
+    "check": "node --check app.js && node --check oauth.js && node --check oauth.e2e.js && node --check oauth.e2e-server.js",
     "test:e2e": "node --env-file=.env oauth.e2e.js"
   },
   "dependencies": {

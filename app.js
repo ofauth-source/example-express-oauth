@@ -75,7 +75,7 @@ export function createApp(config) {
 		if (typeof req.body.id !== "string" || !req.body.id) return page(res, "Choose an account", "<p>Select an account from the list.</p>", 400)
 		const registration = await ofauth.load(req.session.userId)
 		const account = await discovery(req).linkedAccounts.get({ id: req.body.id })
-		await ofauth.select(req.session.userId, account.id, registration?.version)
+		await ofauth.select(req.session.userId, account.id, registration?.version, registration?.tokens?.refresh_token)
 		res.redirect("/")
 	})
 	app.get("/profile", signedIn, async (req, res) => {

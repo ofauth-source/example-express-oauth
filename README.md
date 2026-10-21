@@ -77,7 +77,7 @@ npm run check
 npm run test:e2e
 ```
 
-Use a disposable database: the E2E run clears the example tables. The run starts two Express instances sharing PostgreSQL, tests concurrent refresh, loses a refresh response, restarts an instance, checks account isolation, and retries revocation after an outage. It writes a redacted `artifacts/oauth-e2e.json`. See [TESTING.md](TESTING.md) for failure expectations and simulation limits. This fixture is not actual OFAuth or staging provider evidence.
+Use a disposable database: the E2E run clears the example tables. The run starts two Express processes sharing PostgreSQL, tests concurrent refresh, loses a refresh response, restarts a process, checks account isolation and selection during a callback, and retries revocation after an outage. It writes a redacted `artifacts/oauth-e2e.json`. See [TESTING.md](TESTING.md) for failure expectations and simulation limits. This fixture is not actual OFAuth or staging provider evidence.
 
 ## Before deployment
 
