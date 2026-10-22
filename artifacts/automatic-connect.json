@@ -169,5 +169,23 @@
       "sha256": "f0edd451385d3ce2ee03288cee3b9f8b8544533526ab678f30ea78eeddd734a6"
     }
   ],
-  "publication": "Local proof only. No package publication, deployment or live accounts. R2 evidence upload blocked by expired Cloudflare authorization."
+  "publication": {
+    "verified": "HTTP 200, image/png, public max-age=31536000 immutable, downloaded body SHA256 matches each source screenshot.",
+    "screenshots": [
+      {
+        "url": "https://evidence.ofauth.com/example-express-oauth/1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6/issue-1269/profile-recovered-desktop.png",
+        "sha256": "d00a197ecd3c7886092f3354e827ce2e47c5e903972246bc7daf0bfcce3aedb6",
+        "status": 200,
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=31536000, immutable"
+      },
+      {
+        "url": "https://evidence.ofauth.com/example-express-oauth/1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6/issue-1269/after-disconnect-connect-desktop.png",
+        "sha256": "77c84cc95a12cedee25f4360d7b0babedc32db9f118d0b6d17fc0d9ef825176c",
+        "status": 200,
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=31536000, immutable"
+      }
+    ]
+  }
 }
