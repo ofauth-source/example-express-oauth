@@ -6,11 +6,7 @@ The app uses the V4 TypeScript SDK and PostgreSQL. Tokens, pending callbacks, br
 
 ## Run locally
 
-Use Node.js 22 or later, npm, and Docker. Create a Sandbox integration in the [OFAuth dashboard](https://app.ofauth.com). Add `http://127.0.0.1:3000` as your app origin. Register this return URL exactly:
-
-```text
-http://127.0.0.1:3000/oauth/ofauth/callback
-```
+Use Node.js 22 or later, npm, Docker, and an active OFAuth Operator plan. You do not need to register an app or copy OFAuth credentials.
 
 Clone and install the example:
 
@@ -22,7 +18,7 @@ cp .env.example .env
 docker compose up -d --wait
 ```
 
-Set `OFAUTH_CLIENT_ID` and `OFAUTH_CLIENT_SECRET` in `.env` to your Sandbox credentials. Generate a session secret:
+Generate a session secret:
 
 ```bash
 node --input-type=module -e 'import { randomBytes } from "node:crypto"; console.log(randomBytes(32).toString("hex"))'
@@ -40,28 +36,26 @@ Open **http://127.0.0.1:3000**. Use `127.0.0.1` throughout the flow so the brows
 1. Select **Sign in to the demo**, then **Connect with OFAuth**.
 2. Complete authorization. The application checks the callback against your app session and saves the tokens.
 3. On **Choose an account**, select **Use this account** for the account you want.
-4. Select **Read profile**. You should see that account's name and username. Sandbox uses sample data.
+4. Select **Read profile**. You should see that account's name and username. Requests use the approving workspace’s Operator allowance.
 5. Restart the app and open the home page. Your session and selected account remain available.
 
 The demo sign-in always uses the app user `demo-customer`. Replace that route with your app's authentication before you deploy.
 
-## Use your Operator allowance
+## Automatic Operator setup
 
-For your own accounts, register a private deployment under **Linked accounts → Connected apps → Private apps** in the OFAuth dashboard. Use the same callback above. Each deployment gets its own client ID and secret; keep the secret on your server.
+Operator mode is the default. The server discovers OFAuth’s registration endpoint and creates credentials for this deployment. It stores them in its own PostgreSQL database, and reuses them after restart. No client secret is shipped in this repository or copied by the user. The app requests `access:read connections:manage`.
 
-Set these values in `.env`:
+Select **Connect with OFAuth**, sign in to OFAuth, choose the accounts to share, and approve. Approval binds this private deployment to your subscribing workspace. Registration alone grants no account access and uses no allowance. The app then discovers the exact granted accounts. Apps in the OFAuth Operator sidebar lets you disconnect access; Usage shows the app’s usage.
 
-```dotenv
-OFAUTH_CLIENT_ID=<your private deployment client ID>
-OFAUTH_CLIENT_SECRET=<your private deployment secret>
-OFAUTH_SCOPES=access:read connections:manage
-```
+An unused registration expires after 24 hours. On a later app start, an expired, unapproved registration is replaced automatically. Preserve the application database so approved client credentials, sessions, tokens and account choices survive restart. The app’s database user must be private to the application.
 
-Restart the app and select **Connect with OFAuth**. Sign in as a manager of the subscribing workspace and choose the accounts to share. The same account picker, profile request, reconnect, refresh, and disconnect flows work with Operator authority. Requests spend that workspace's Operator allowance. No Developer integration is required for this private deployment.
+This example reads profiles. Other Access operations keep their existing confirmation rules. Operator apps do not include Realtime, Vault+, or webhooks.
 
-This example reads profiles. Other Access operations keep their existing confirmation rules. The example does not request write access or provide a background confirmation bypass. Operator private apps do not include Realtime, Vault+, or webhooks.
+For a local OFAuth server, set `OFAUTH_API_URL=http://127.0.0.1:8787` and `OFAUTH_AUTH_URL=http://localhost:8788`. These are server configuration values. Production uses the standard OFAuth origins. The automatic registration endpoint must be deployed before this example’s Operator mode is used.
 
-For an isolated local OFAuth server, set `OFAUTH_API_URL=http://127.0.0.1:8787` and `OFAUTH_AUTH_URL=http://localhost:8788`. These are server configuration values, not browser-supplied URLs. Production uses the SDK's default OFAuth hosts.
+## Developer integrations
+
+A product onboarding other people’s accounts still uses its Developer integration, entitlement and billing. Set `OFAUTH_MODE=developer`, `OFAUTH_CLIENT_ID` and `OFAUTH_CLIENT_SECRET` from that integration in the private `.env`. Register the exact callback `${APP_ORIGIN}/oauth/ofauth/callback`. Developer mode requests `profile:read` and keeps the same OAuth, discovery and account-selection flow. An account owner does not need an Operator plan to use a Developer integration.
 
 ## Try cancellation and reconnect
 
