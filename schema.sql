@@ -1,3 +1,4 @@
 CREATE TABLE IF NOT EXISTS app_oauth (user_key text PRIMARY KEY, version text NOT NULL, tokens jsonb, selected_account_id text, revocation_token text);
 CREATE TABLE IF NOT EXISTS app_pending (state text PRIMARY KEY, session_id text NOT NULL, user_key text NOT NULL, version text NOT NULL, verifier text NOT NULL, expires_at timestamptz NOT NULL);
 CREATE TABLE IF NOT EXISTS app_reconnect (state text PRIMARY KEY, session_id text NOT NULL, user_key text NOT NULL, linked_account_id text NOT NULL, expires_at timestamptz NOT NULL);
+CREATE TABLE IF NOT EXISTS app_operator_registration (issuer text NOT NULL, redirect_uri text NOT NULL, client_id text NOT NULL, client_secret text NOT NULL, activated boolean NOT NULL DEFAULT false, created_at timestamptz NOT NULL DEFAULT now(), PRIMARY KEY(issuer,redirect_uri));
