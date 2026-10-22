@@ -40,10 +40,10 @@ export function createOAuth({ pool, clientId, clientSecret, origin, apiUrl, auth
 			const result = await pool.query("UPDATE app_oauth SET tokens=$3,selected_account_id=NULL WHERE user_key=$1 AND version=$2 AND revocation_token IS NULL", [key(userId), pending.version, stored(tokens)])
 			if (!result.rowCount) { await link.revoke({ token: tokens.refresh_token }); throw invalid() }
 		},
-		async accessToken(userId) {
+		async accessToken(userId, request = {}) {
 			const row = await load(userId)
 			if (!row?.tokens) throw invalid()
-			if (row.tokens.expires_at > Date.now() + 60_000) return row.tokens.access_token
+			if (row.tokens.expires_at > Date.now() + 60_000 && (!request.forceRefresh || row.tokens.access_token !== request.rejectedAccessToken)) return row.tokens.access_token
 			const tokens = stored(await link.refresh({ refreshToken: row.tokens.refresh_token }))
 			const result = await pool.query("UPDATE app_oauth SET tokens=$3 WHERE user_key=$1 AND version=$2 AND tokens->>'refresh_token'=$4", [key(userId), row.version, tokens, row.tokens.refresh_token])
 			if (!result.rowCount) throw invalid()
