@@ -1,13 +1,13 @@
 {
   "result": "pass",
-  "revision": "0976699ea46e0368eb58e7cc605420ef6670bcc3",
+  "revision": "108d734a83e13baadc3613411da5a0563b9a0c90",
   "sourceDigests": {
-    "app.js": "f40f2d53482843b832f62d6f67680e176e737fed1a096730ab9da91349667da2",
-    "oauth.js": "fb24dc66d6543a6f1a6fdbf19af813e79248053d5a3354cc07535b9ee70c7418",
-    "oauth.e2e.js": "1767a2b162c7d62f761684d11edf0b728b4dbe7c7daa8acadb950c741040f302",
+    "app.js": "8f0fe25d14945f953aedf157478b787c1cd904f895b508d254bac9524ebcaba9",
+    "oauth.js": "c73f6f6cb7017144daa9409a2f6bca9e5c8cd5b286d0aea2b083fc822326a3d3",
+    "oauth.e2e.js": "cf96c53fe812889cfb003ba7938090740119ff55d2751acb531e2a8cb11c8c0b",
     "oauth.e2e-server.js": "7c8b0af49cdeda9890736a47bd2d1fb4dfe4c3e6e7ca32d81935b3e35e5d3c56",
-    "schema.sql": "2bc6a15864c005b95025d2223991c475184c0556762d7f679efaafe84b1a0ad2",
-    "package.json": "4455ceead59b70a39c12c15c98e390caf46a2f7aea1a909d1d938e1040c64b56"
+    "schema.sql": "a39a9e14853afa7dfb3b714c204296d7068dccdccee45ad9f0a2a45cecdb4205",
+    "package.json": "99d61512bef1812f392bc482971ca0d0623469674e13ab3c8ea02be90f714c06"
   },
   "runtime": "v22.23.1",
   "sdk": "4.0.0",
@@ -27,6 +27,10 @@
     "lost refresh response retry after application restart",
     "stale in-flight refresh cannot overwrite a newer registration",
     "selection started during pending authorization cannot overwrite the callback's new registration",
+    "rejected cached access token refreshes without new consent",
+    "dashboard revocation immediately asks to connect before cached token expiry",
     "local disconnect fails closed and preserves upstream revocation retry"
-  ]
+  ],
+  "demonstrated": "1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6",
+  "timing": "Tested as an uncommitted tree before the demonstrated code commit."
 }
