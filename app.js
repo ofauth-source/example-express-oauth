@@ -7,6 +7,7 @@ import { pathToFileURL } from "node:url"
 import { OFAuthClient } from "@ofauth/onlyfans-sdk"
 
 import { createOAuth } from "./oauth.js"
+import { operatorRegistration } from "./registration.js"
 
 const escape = value => String(value ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c])
 const saveSession = req => new Promise((resolve, reject) => req.session.save(error => error ? reject(error) : resolve()))
@@ -15,7 +16,7 @@ export function createApp(config) {
 	const { clientId, clientSecret, sessionSecret, pool, origin, apiUrl, authUrl, scopes } = config
 	const ofauth = createOAuth({ clientId, clientSecret, pool, origin, apiUrl, authUrl, scopes })
 	const tokenKey = ofauth.key
-	const discovery = req => new OFAuthClient({ baseUrl: apiUrl, accessToken: () => ofauth.accessToken(req.session.userId) })
+	const discovery = req => new OFAuthClient({ baseUrl: apiUrl, accessToken: request => ofauth.accessToken(req.session.userId, request) })
 	const selection = async req => (await ofauth.load(req.session.userId))?.selected_account_id
 	const app = express()
 	app.disable("x-powered-by")
@@ -60,6 +61,7 @@ export function createApp(config) {
 		try {
 			if (Object.hasOwn(req.query, 'reconnect')) return await reconnectReturn(req, res)
 			await ofauth.complete(req.originalUrl, req.session.userId, req.sessionID)
+			await pool.query("UPDATE app_operator_registration SET activated=true WHERE client_id=$1", [clientId])
 			res.redirect("/accounts")
 		} catch (error) {
 			if (error.code === "access_denied") return page(res, "Authorization canceled", '<p>No new access was saved. You can connect again from home.</p>')
@@ -124,11 +126,16 @@ export function createApp(config) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-	const { OFAUTH_CLIENT_ID: clientId, OFAUTH_CLIENT_SECRET: clientSecret, SESSION_SECRET: sessionSecret, DATABASE_URL: connectionString, APP_ORIGIN: origin = "http://127.0.0.1:3000" } = process.env
-	if (!clientId || !clientSecret || !sessionSecret || !connectionString) throw new Error("Set OFAUTH_CLIENT_ID, OFAUTH_CLIENT_SECRET, SESSION_SECRET, and DATABASE_URL in .env")
+	const { SESSION_SECRET: sessionSecret, DATABASE_URL: connectionString, APP_ORIGIN: origin = 'http://127.0.0.1:3000', OFAUTH_MODE: mode = 'operator' } = process.env
+	if (!sessionSecret || !connectionString) throw new Error('Set SESSION_SECRET and DATABASE_URL in .env')
+	if (!['operator', 'developer'].includes(mode)) throw new Error('OFAUTH_MODE must be operator or developer')
 	const pool = new pg.Pool({ connectionString })
-	const scopes = process.env.OFAUTH_SCOPES?.split(' ').filter(Boolean)
-	const app = createApp({ clientId, clientSecret, sessionSecret, pool, origin, scopes,
+	const registration = mode === 'operator'
+		? await operatorRegistration({ pool, origin, apiUrl: process.env.OFAUTH_API_URL })
+		: { clientId: process.env.OFAUTH_CLIENT_ID, clientSecret: process.env.OFAUTH_CLIENT_SECRET }
+	if (!registration.clientId || !registration.clientSecret) throw new Error('Developer mode requires OFAUTH_CLIENT_ID and OFAUTH_CLIENT_SECRET')
+	const scopes = mode === 'operator' ? ['access:read', 'connections:manage'] : ['profile:read']
+	const app = createApp({ ...registration, sessionSecret, pool, origin, scopes,
 		apiUrl: process.env.OFAUTH_API_URL, authUrl: process.env.OFAUTH_AUTH_URL })
-	app.listen(Number(new URL(origin).port || 3000), "127.0.0.1", () => console.log(`Open ${origin}`))
+	app.listen(Number(new URL(origin).port || 3000), '127.0.0.1', () => console.log(`Open ${origin}`))
 }

@@ -1,0 +1,191 @@
+{
+  "demonstrated": "1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6",
+  "coreDemonstrated": "e85958543be5dcc69d8d8d35c818af0ea65fb2cf",
+  "timing": "Actual native browser screenshots and HTTP checks ran before the code commit; start/end production hashes matched. Parent inspected and displayed screenshots before commit.",
+  "sourceSha256": {
+    "app.js": "8f0fe25d14945f953aedf157478b787c1cd904f895b508d254bac9524ebcaba9",
+    "oauth.js": "c73f6f6cb7017144daa9409a2f6bca9e5c8cd5b286d0aea2b083fc822326a3d3",
+    "registration.js": "162f7944eb9f011c0259b99cfec7a23ee950f267af76e0d8650c75e98e24d0bd",
+    ".env.example": "074bb9d0f192d73d1ec9108b973e7d4d4c5c0d460168c816fa4172dc14e7da5b",
+    "schema.sql": "a39a9e14853afa7dfb3b714c204296d7068dccdccee45ad9f0a2a45cecdb4205",
+    "package.json": "99d61512bef1812f392bc482971ca0d0623469674e13ab3c8ea02be90f714c06"
+  },
+  "environment": {
+    "postgres": "own docker postgres:16 ofauth-ac69r2-pg 127.0.0.1:62494 (removed at end)",
+    "coreDb": "ofauth_backend_fcbb50df26052da6 (runtime-created)",
+    "appDb": "express_app (separate DB, same owned container; created by the example's setup.js)",
+    "runtime": "mirrored backend-verification `up --target local --environment test --proof simulation --journey account-access-provider`; Core 8788, gateway 8787, consent web 8789, dashboard webapp built from current tree on localhost:15173 (supported webappOrigin override; 5173 is occupied by an unrelated wholesale-site vite process), provider simulation worker 8889",
+    "app": "official example app.js on 127.0.0.1:3000, OFAUTH_MODE=operator, OFAUTH_CLIENT_ID/SECRET explicitly removed from env, OFAUTH_API_URL=http://127.0.0.1:8787, OFAUTH_AUTH_URL=http://localhost:8788; self-registered oa_3ddd2d83-18d9-4c7e-94fc-9edfdf609e7d at boot (discovery 200 -> /v3/link/register 201)",
+    "wireCapture": "/tmp/ac69-r2/wire-hook.mjs loaded via `node --import` into the app process: wraps fetch and records method/path/status/OAuth error and sha256 prefixes of tokens. It does not modify requests or responses. A pass-through port was rejected because the app correctly pins the discovery issuer.",
+    "browser": "Playwright Chromium (webapp-3 install), desktop 1440x1000. The T3 preview browser was not used because the scripted Playwright journey was the established R1 workflow and needed DB assertions between steps.",
+    "untouched": [
+      "ofauth-auto-connect-pg 62493",
+      "ofauth-postgres-local 61700",
+      "5173 wholesale-site",
+      "5174 codex process",
+      "local-mail-test",
+      "old child worktrees",
+      "/tmp/ac69 (R1) except reading"
+    ]
+  },
+  "expectations": {
+    "normal": "No dashboard client registration or OFAUTH_CLIENT_ID/SECRET needed; first consent binds one workspace and exact account grants.",
+    "rejectedToken": "An unexpired rejected bearer refreshes once; valid refresh recovers without consent; revoked refresh shows existing Connect page immediately.",
+    "state": "Stable refresh and version/selection compare-and-swap preserve a newer authorization."
+  },
+  "results": {
+    "E1_connect": {
+      "status": "pass",
+      "evidence": "no client env; browser demo sign-in -> Connect -> native consent (identity, permissions, choose accounts: 2 offered) -> Mara (1010) only -> callback /accounts lists only Mara; one AccountClient kind api bound to Northwind organization; one authorization granting only Mara; registration activated. Seeded custody has no provider session (profile 502 operation_unavailable, same as R1), so Mara got one through the app's Reconnect + documented provider simulation (needs_reconnect + provider_login_email, password-only form) -> 'Reconnect finished' -> /profile 200 'Connected profile'.",
+      "shots": [
+        "shots/c1-consent-identity-desktop.png",
+        "shots/c1-consent-accounts-desktop.png",
+        "shots/c1-app-profile-needs-reconnect-desktop.png",
+        "shots/c1-app-profile-desktop.png"
+      ]
+    },
+    "E3_accessOnlyInvalidation": {
+      "status": "pass",
+      "semanticsConfirmedFirst": "Two throwaway access tokens minted with the actual refresh grant. POST /v3/link/revoke token_type_hint=access_token on A returned 200; A 401; sibling B 200; app stored bearer 200; refresh grant still 200. So the actual server revokes only that access token, matching the OpenAPI text 'An access token revokes only itself'. No DB mutation fallback needed. Throwaways revoked afterwards.",
+      "fixture": "Revoked the app's stored access token with token_type_hint=access_token. It was locally unexpired (>2 min left, checked; ~14.7 min actual).",
+      "expected": "app /profile 200 without consent; new access token; refresh credential/version/selection stable; no new authorization",
+      "actual": "/profile 200 'Connected profile' at /profile. Wire (/tmp/ac69-r2/wire-recover.json): GET /v3/linked-accounts/{id} bearer 006204f7 401 invalid_token -> POST /v3/link/token refresh_token 200 (refresh fae04847 returned unchanged, new access ac8e3b05) -> GET /v3/linked-accounts/{id} 200 -> GET /v3/access/profile 200. Exactly one refresh. Stored refresh md5 9b6981d5, version 3280780d, selection unchanged; access token replaced; /accounts 200; authorization rows identical; no Developer rows.",
+      "shots": [
+        "shots/r2-app-profile-recovered-desktop.png"
+      ]
+    },
+    "E2_disconnectBeforeExpiry_F1": {
+      "status": "pass (F1 fixed)",
+      "steps": "real dashboard (15173) Overview -> sidebar Apps -> Manage Express example -> Disconnect -> confirm. Row stays 'Express example | Active | 0 | Manage'.",
+      "timing": "app call 713 ms after disconnect; stored access token had 872 s of local life left",
+      "expected": "401 'Connect with OFAuth', refresh invalid_grant, no 502",
+      "actual": "/accounts 401 'Connect with OFAuth'; /profile 401 'Connect with OFAuth'. Wire (/tmp/ac69-r2/wire-disconnect.json): GET /v3/linked-accounts 401 invalid_token (bearer ac8e3b05) -> POST /v3/link/token refresh_token 400 invalid_grant; /profile: GET /v3/linked-accounts/{id} 401 invalid_token -> token 400 invalid_grant. One refresh per request, no loop, no 5xx. Direct refresh 400 invalid_grant. Provider custody connected for both accounts. No Developer rows.",
+      "r1Comparison": "R1 got 502 'Request could not finish' (OFAuthAPIError invalid_token) in the same situation",
+      "shots": [
+        "shots/d-apps-after-disconnect-desktop.png",
+        "shots/d-app-401-connect-desktop.png",
+        "shots/d-app-profile-401-connect-desktop.png"
+      ]
+    },
+    "E4_connectAgain": {
+      "status": "pass",
+      "preApproval": "on consent: still exactly one AccountClient (same oa_3ddd2d83), only the revoked authorization, dashboard row 0 accounts",
+      "approval": "consent offered 2 accounts; chose only Mara. Callback lists only Mara (by id). App selected_account_id reset to NULL by the new authorization (stale selection not reused), re-selected, /profile 200.",
+      "staleCallback": "The first connect's callback URL was not captured (see harnessFailures). Instead: new Connect -> Decline -> 'Authorization canceled'. Replaying that consumed callback returned 400 'Authorization expired'. Tokens (refresh md5 800a9e7a) and selection unchanged; profile still 200; authorizations unchanged. app_oauth.version changes when a new Connect starts, which is by design (it invalidates in-flight writes).",
+      "final": "authorizations [revoked: Mara], [active: Mara]; Leo never granted; one AccountClient; dashboard row 'Active | 1'. Developer ledgers unchanged; Operator usage/billing rows changed as expected.",
+      "shots": [
+        "shots/c2-consent-identity-desktop.png",
+        "shots/c2-consent-accounts-desktop.png",
+        "shots/c2-app-accounts-after-reconnect-desktop.png",
+        "shots/c2-app-profile-desktop.png",
+        "shots/s-app-stale-callback-desktop.png",
+        "shots/c2-apps-after-reconnect-desktop.png"
+      ]
+    },
+    "E5_nonManager": {
+      "status": "not tested",
+      "reason": "Not cheap here: requires a second user with a membership lacking manage_authorizations. The existing server gate in operator-api.ts rejects non-managers (access_denied) and sets canRegister = live Operator entitlement; the menu renders only when canRegister. Unit/integration coverage is from the parent only."
+    },
+    "E6_billing": {
+      "operator": "Each phase changed Operator rows only: operator_account_access_operations, operator_quota_ledger_entries, operator_billing_outbox, v3_connection_billing_period_states/outbox. Inspected: subscription_operator_*, product operator-pro, component additional-active-connection peak 1.",
+      "developer": "developer_* (9 tables), external_oauth_test_usage_ledger and v3_developer_paid_invoices stayed 0 throughout. Ledgers: /tmp/ac69-r2/ledger-*.txt"
+    }
+  },
+  "recordedHarnessFailures": [
+    {
+      "check": "connect: no Developer rows changed (first evaluation)",
+      "cause": "My DEVELOPER_TABLES regex wrongly included v3_connection_billing_*, the same mistake R1 recorded. The rows are Operator subscription rows. Regex fixed; later phases pass."
+    },
+    {
+      "check": "connect: profile 200 (initial)",
+      "cause": "Expected 502 operation_unavailable on seeded custody without a provider session (same as R1). A harness query bug (authorized_at column) also stopped the phase after callback. A connect-finish continuation phase ran the provider simulation and got 200 without a second consent."
+    },
+    {
+      "check": "recover: /accounts lists 'Mara Quinn'",
+      "cause": "Status 200 was correct. The provider simulation renamed the display name to 'Backend provider account'. Later checks match by connection id."
+    }
+  ],
+  "limits": [
+    "Provider transport is the documented local simulation (single provider account 1010). Account 1011 (Leo) has no provider session, so the second connect re-chose Mara rather than switching accounts.",
+    "Only desktop screenshots. The Apps/mobile UI gallery is reused from R1/parent.",
+    "No live accounts, staging, deploy, publish, Cloudflare login, commits or pushes.",
+    "The 63-check R1 journey was not repeated (deny, restart, concurrency and crash recovery are covered by R1)."
+  ],
+  "screenshots": [
+    {
+      "name": "c1-app-profile-desktop.png",
+      "sha256": "d00a197ecd3c7886092f3354e827ce2e47c5e903972246bc7daf0bfcce3aedb6"
+    },
+    {
+      "name": "c1-app-profile-needs-reconnect-desktop.png",
+      "sha256": "d24548753ee9308d5ebede7c7e494d1d614c2e86fb4f70300c868335a18586d5"
+    },
+    {
+      "name": "c1-consent-accounts-desktop.png",
+      "sha256": "d1c5289ea8f8fb0a0a3a6f857cfeac3d6d35a8a997774317ccbe399c363681ac"
+    },
+    {
+      "name": "c1-consent-identity-desktop.png",
+      "sha256": "45886665d183299b1d383474a540adcad60870cfad56420af058be5908c592c2"
+    },
+    {
+      "name": "c2-app-accounts-after-reconnect-desktop.png",
+      "sha256": "4b1f75e3ba20cdf00c54a25f538a22acb6a0039f344eec43854a6ee157a71f1e"
+    },
+    {
+      "name": "c2-app-profile-desktop.png",
+      "sha256": "d00a197ecd3c7886092f3354e827ce2e47c5e903972246bc7daf0bfcce3aedb6"
+    },
+    {
+      "name": "c2-apps-after-reconnect-desktop.png",
+      "sha256": "fe0c59523478da37744bcbf2fed56b5c006692f1d134b00d7462bedc24bf0341"
+    },
+    {
+      "name": "c2-consent-accounts-desktop.png",
+      "sha256": "3035236bb2ee30547117539c46bcd2927a5824b1f7067b456b8bc0392c41dd21"
+    },
+    {
+      "name": "c2-consent-identity-desktop.png",
+      "sha256": "45886665d183299b1d383474a540adcad60870cfad56420af058be5908c592c2"
+    },
+    {
+      "name": "d-app-401-connect-desktop.png",
+      "sha256": "77c84cc95a12cedee25f4360d7b0babedc32db9f118d0b6d17fc0d9ef825176c"
+    },
+    {
+      "name": "d-app-profile-401-connect-desktop.png",
+      "sha256": "77c84cc95a12cedee25f4360d7b0babedc32db9f118d0b6d17fc0d9ef825176c"
+    },
+    {
+      "name": "d-apps-after-disconnect-desktop.png",
+      "sha256": "f3d2ab6cbc2af942ee04eac9842dc3088f373e915305cdb0e290ed47433e8605"
+    },
+    {
+      "name": "r2-app-profile-recovered-desktop.png",
+      "sha256": "d00a197ecd3c7886092f3354e827ce2e47c5e903972246bc7daf0bfcce3aedb6"
+    },
+    {
+      "name": "s-app-stale-callback-desktop.png",
+      "sha256": "f0edd451385d3ce2ee03288cee3b9f8b8544533526ab678f30ea78eeddd734a6"
+    }
+  ],
+  "publication": {
+    "verified": "HTTP 200, image/png, public max-age=31536000 immutable, downloaded body SHA256 matches each source screenshot.",
+    "screenshots": [
+      {
+        "url": "https://evidence.ofauth.com/example-express-oauth/1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6/issue-1269/profile-recovered-desktop.png",
+        "sha256": "d00a197ecd3c7886092f3354e827ce2e47c5e903972246bc7daf0bfcce3aedb6",
+        "status": 200,
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=31536000, immutable"
+      },
+      {
+        "url": "https://evidence.ofauth.com/example-express-oauth/1b7b42f8cb7bd77a1c47fa6fe8d0880256baeae6/issue-1269/after-disconnect-connect-desktop.png",
+        "sha256": "77c84cc95a12cedee25f4360d7b0babedc32db9f118d0b6d17fc0d9ef825176c",
+        "status": 200,
+        "contentType": "image/png",
+        "cacheControl": "public, max-age=31536000, immutable"
+      }
+    ]
+  }
+}
